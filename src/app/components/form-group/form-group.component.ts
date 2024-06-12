@@ -1,13 +1,16 @@
 import { Component, OnInit } from '@angular/core';
-import { ReactiveFormsModule, FormControl, Validators, FormGroup, FormBuilder } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RecaptchaModule, RecaptchaFormsModule } from 'ng-recaptcha';
 import Swal from 'sweetalert2';
+import { FormService } from '../../form.service'; // Inject your service
+import { HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-form-group',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RecaptchaModule, RecaptchaFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RecaptchaModule, RecaptchaFormsModule, HttpClientModule],
+  providers: [FormBuilder, FormService], // Incluir FormBuilder y FormService
   templateUrl: './form-group.component.html',
   styleUrls: ['./form-group.component.scss']
 })
@@ -15,9 +18,10 @@ export class FormGroupComponent implements OnInit {
   form: FormGroup;
   captchaValid: boolean = false;
 
-  constructor(private formBuilder: FormBuilder) {
+  constructor(private formBuilder: FormBuilder, private formService: FormService) {
     this.buildForm();
-  }
+   }
+
 
   ngOnInit(): void {}
 
@@ -38,17 +42,29 @@ export class FormGroupComponent implements OnInit {
 
   save(event: Event) {
     event.preventDefault();
-    if (this.form.valid && this.captchaValid) {
+    if (this.form.valid) {
       const datosFormulario = this.form.value;
       console.log(datosFormulario);
-      Swal.fire({
-        title: 'Éxito',
-        text: 'Los datos se enviaron correctamente.',
-        icon: 'success',
-        confirmButtonText: 'OK'
-      });
-      this.form.reset(); // Reiniciar el formulario
-      this.captchaValid = false; // Reiniciar el estado del captcha
+      this.formService.saveForm(datosFormulario).subscribe(
+        response => {
+          Swal.fire({
+            title: 'Éxito',
+            text: 'Los datos se enviaron correctamente.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+          });
+          this.form.reset();
+        },
+        error => {
+          Swal.fire({
+            title: 'Error',
+            text: 'Hubo un error al enviar los datos.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+          console.error(error);
+        }
+      );
     } else {
       this.form.markAllAsTouched();
     }
